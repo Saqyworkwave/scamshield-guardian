@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#003087">
+<title>ScamShield Guardian</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Atkinson Hyperlegible: a typeface designed for maximum legibility. Falls back to system fonts. -->
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* Design idea: a calm "checkpoint". A big risk gauge sweeps to a score on a ticket-style card,
+     and the whole page tints softly to match the verdict. */
+  :root{--navy:#003087;--ink:#1c2a3a;--muted:#52606f;--bg:#f2f6fa;--paper:#ffffff;--line:#c9d6e3;--teal:#0070ba;
+    --safe:#1e7a52;--risky:#a9650a;--scam:#b0372f;--vc:var(--teal);--fs:20px}
+  :root.big{--fs:23px}
+  body.v-SAFE{--bg:#e4f3ec;--vc:var(--safe)} body.v-RISKY{--bg:#fbf2de;--vc:var(--risky)} body.v-SCAM{--bg:#fbe7e4;--vc:var(--scam)}
+  *{box-sizing:border-box} [hidden]{display:none!important}
+  html{font-size:var(--fs)}
+  body{margin:0;background:var(--bg);color:var(--ink);transition:background .8s;padding-bottom:5.5rem;
+    font:1rem/1.55 "Atkinson Hyperlegible",system-ui,"Segoe UI",sans-serif}
+  main{max-width:560px;margin:0 auto;padding:0 1rem 1.5rem}
+  :focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+
+  header{display:flex;justify-content:space-between;align-items:center;padding:1rem 0 .6rem}
+  .brand{display:flex;gap:.6rem;align-items:center;font-weight:700;font-size:.95rem;line-height:1.2;color:var(--navy)}
+  .brand svg{width:42px;height:42px;flex:none}
+  .ghost{background:none;border:2px solid var(--line);color:var(--navy);border-radius:999px;padding:.3rem .9rem;font:inherit;font-weight:700;cursor:pointer}
+
+  .steps{list-style:none;display:flex;gap:.5rem;margin:.4rem 0 0;padding:0}
+  .steps li{flex:1;border-top:6px solid var(--line);padding-top:.35rem;font-size:.8rem;color:var(--muted);border-radius:3px;transition:border-color .4s}
+  .steps li.on{border-color:var(--vc);color:var(--ink);font-weight:700}
+
+  h1{color:var(--navy);font-size:2.1rem;line-height:1.12;margin:1.4rem 0 .6rem;letter-spacing:-.01em}
+  .lead{color:var(--muted);margin:0 0 1.2rem}
+  .tiny{font-size:.85rem;color:var(--muted);margin:0 0 .4rem}
+  .chips{display:flex;flex-wrap:wrap;gap:.5rem}
+  .dot{width:.7rem;height:.7rem;border-radius:50%;flex:none}
+  .dot.g{background:var(--safe)} .dot.a{background:var(--risky)} .dot.r{background:var(--scam)}
+
+  label{display:block;font-weight:700;margin:1.1rem 0 .35rem}
+  label small{font-weight:400;color:var(--muted)}
+  input,textarea{width:100%;font:inherit;padding:.8rem .9rem;border:2px solid var(--line);border-radius:14px;background:var(--paper);color:var(--ink)}
+  textarea{min-height:7rem;resize:vertical}
+  .err{color:var(--scam);font-weight:700;min-height:1.6rem;margin:.6rem 0 0}
+
+  button,.btn{display:block;width:100%;min-height:3.4rem;margin-top:.9rem;padding:1rem 1.2rem;border:0;border-radius:999px;
+    background:var(--teal);color:#fff;font:inherit;font-weight:700;text-align:center;text-decoration:none;cursor:pointer}
+  button:hover,.btn:hover{background:var(--navy)}
+  button.sec:hover,.btn.sec:hover{background:#e3eefa;color:var(--navy)}
+  .chip:hover,.ghost:hover{background:#e3eefa}
+  button:disabled{opacity:.65;cursor:wait}
+  button.sec,.btn.sec{background:transparent;color:var(--teal);border:2px solid var(--teal)}
+  .chip{width:auto;min-height:0;margin:0;padding:.55rem 1rem;display:inline-flex;gap:.5rem;align-items:center;
+    background:var(--paper);color:var(--ink);border:2px solid var(--line);font-weight:400}
+
+  /* Verdict ticket with a perforated stub */
+  .ticket{margin-top:1.2rem;background:var(--paper);border:2px solid var(--vc);border-radius:22px;padding:1.1rem 1.25rem 1.3rem;overflow:hidden;text-align:center}
+  .gauge{width:100%;max-width:320px;display:block;margin:0 auto}
+  .gauge path{fill:none;stroke-width:15}
+  .g1{stroke:var(--safe)} .g2{stroke:var(--risky)} .g3{stroke:var(--scam)}
+  .needle line{stroke:var(--ink);stroke-width:4;stroke-linecap:round} .needle circle{fill:var(--ink)}
+  .ticket h2{font-size:1.7rem;line-height:1.15;margin:.2rem 0;color:var(--vc)}
+  .score{margin:0;color:var(--muted)}
+  .stub{position:relative;margin:1.2rem -1.25rem 0;padding:1.2rem 1.25rem 0;border-top:3px dashed var(--line);text-align:left}
+  .stub::before,.stub::after{content:"";position:absolute;top:-14px;width:26px;height:26px;border-radius:50%;background:var(--bg);border:2px solid var(--vc)}
+  .stub::before{left:-15px} .stub::after{right:-15px}
+  .stub ul{margin:0 0 .8rem;padding-left:1.2rem} .stub li{margin-bottom:.3rem}
+  .ai-note{font-weight:700;margin:.8rem 0 0}
+
+  .warn,.pay,.ok{margin-top:1rem;background:var(--paper);border-radius:22px;padding:1rem 1.1rem}
+  .warn{border-left:8px solid var(--risky)} .pay{border:2px solid var(--line)} .ok{border:2px solid var(--safe)}
+  .check{display:flex;gap:.8rem;align-items:flex-start;font-weight:400;margin:0}
+  .check input{width:1.7rem;height:1.7rem;flex:none;margin-top:.1rem;accent-color:var(--risky)}
+  .ok h2{margin:0 0 .3rem;color:var(--safe)}
+  .small{font-size:.85rem;color:var(--muted);text-align:center;margin-top:1.4rem}
+
+  /* Footer is outside every screen, so it shows on all of them */
+  footer{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--paper);border-top:2px solid var(--line);
+    padding:.7rem 1rem calc(.7rem + env(safe-area-inset-bottom,0px));text-align:center;font-size:.85rem}
+  @media (prefers-reduced-motion:reduce){body{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4l7.6 2.8v5.8c0 4.8-3.2 8.6-7.6 10.6-4.4-2-7.6-5.8-7.6-10.6V5.2z" fill="#003087" stroke="#009cde" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12l3 3 5-6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      ScamShield Guardian
+    </div>
+    <button type="button" class="ghost" id="size" aria-label="Larger text" aria-pressed="false">A+</button>
+  </header>
+  <ol class="steps" id="steps"><li class="on">Details</li><li>Check</li><li id="step3">Pay</li></ol>
+
+  <!-- SCREEN 1: details -->
+  <section id="s1">
+    <h1>Pause before you pay.</h1>
+    <p class="lead">Tell us about the payment. An AI will look for scam warning signs before any money moves.</p>
+    <p class="tiny">Try an example</p>
+    <div class="chips">
+      <button type="button" class="chip" data-ex="plumber"><i class="dot g"></i>Plumber payment</button>
+      <button type="button" class="chip" data-ex="jail"><i class="dot r"></i>Grandson in jail</button>
+      <button type="button" class="chip" data-ex="crypto"><i class="dot a"></i>Crypto offer</button>
+    </div>
+    <form id="form" novalidate>
+      <label for="payee">Who are you paying?</label>
+      <input id="payee" maxlength="200" autocomplete="off">
+      <label for="amount">Amount in US dollars</label>
+      <input id="amount" type="number" inputmode="decimal" min="0.01" step="0.01">
+      <label for="reason">What is it for?</label>
+      <input id="reason" maxlength="500" autocomplete="off">
+      <label for="message">The message they sent you <small>(optional, but it helps a lot)</small></label>
+      <textarea id="message" maxlength="3000"></textarea>
+      <p class="err" id="form-error" role="alert"></p>
+      <button type="submit" id="check-btn">Check this payment</button>
+    </form>
+  </section>
+
+  <!-- SCREEN 2 + 3: verdict and next step -->
+  <section id="s2" hidden>
+    <div class="ticket" aria-live="polite">
+      <svg class="gauge" viewBox="0 0 200 112" role="img" aria-label="Risk gauge">
+        <path class="g1" d="M20 100A80 80 0 0 1 60 30.7"/>
+        <path class="g2" d="M60 30.7A80 80 0 0 1 140 30.7"/>
+        <path class="g3" d="M140 30.7A80 80 0 0 1 180 100"/>
+        <g class="needle" id="needle" transform="rotate(-90 100 100)"><line x1="100" y1="100" x2="100" y2="36"/><circle cx="100" cy="100" r="8"/></g>
+      </svg>
+      <h2 id="vt"></h2>
+      <p class="score">Estimated risk score: <strong id="vs"></strong> out of 100</p>
+      <div class="stub">
+        <ul id="vr"></ul>
+        <p id="va"></p>
+        <p class="ai-note">This is an AI-based suggestion. Please double-check with someone you trust.</p>
+      </div>
+    </div>
+
+    <div class="warn" id="warn" hidden>
+      <label class="check"><input type="checkbox" id="risky-confirm">
+        <span>I understand this may be a scam and I want to continue anyway.</span></label>
+    </div>
+    <div class="pay" id="pay" hidden>
+      <div id="paypal-buttons"></div>
+      <p class="err" id="pay-error" role="alert"></p>
+    </div>
+    <div id="scam-actions" hidden>
+      <button type="button" id="family-btn">Message my family</button>
+      <a class="btn sec" id="family-email" href="#">Send as email instead</a>
+    </div>
+    <div class="ok" id="success" role="status" hidden>
+      <h2>Payment complete</h2>
+      <p style="margin:0">Sandbox order ID: <strong id="order-id"></strong></p>
+    </div>
+    <button type="button" class="sec" id="again-btn">Check another payment</button>
+  </section>
+
+  <p class="small">Sandbox demo. No real money moves.</p>
+</main>
+<footer>ScamShield is an assistant, not a guarantee. The final decision is yours.</footer>
+
+<script>
+/* ---------- Examples ---------- */
+const EXAMPLES = {
+  plumber: { payee: "Dave's Plumbing LLC", amount: 180, reason: 'Fixed my kitchen sink leak',
+    message: 'Hi, here is the invoice for the sink repair we agreed on Tuesday. Thanks for having me out!' },
+  jail: { payee: 'Officer Mark Reyes', amount: 2000, reason: 'Bail money',
+    message: "Grandma it's me, I'm in jail! I need $2000 in gift cards RIGHT NOW. Please don't tell mom and dad, I'm so embarrassed." },
+  crypto: { payee: 'QuickCoin Investments', amount: 500, reason: 'Crypto investment',
+    message: 'Guaranteed 20% weekly returns in Bitcoin. Spots are limited, send your deposit today to join.' },
+};
+const $ = (id) => document.getElementById(id);
+let current = null, sdkPromise = null;
+
+function setStep(n) { [...$('steps').children].forEach((li, i) => li.classList.toggle('on', i < n)); }
+
+$('size').onclick = () => $('size').setAttribute('aria-pressed', document.documentElement.classList.toggle('big'));
+document.querySelectorAll('[data-ex]').forEach((b) => b.addEventListener('click', () => {
+  const ex = EXAMPLES[b.dataset.ex];
+  for (const k in ex) $(k).value = ex[k];
+  $('form-error').textContent = '';
+}));
+
+/* ---------- Screen 1 -> 2: ask the server for a verdict ---------- */
+$('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('form-error').textContent = '';
+  $('check-btn').disabled = true; $('check-btn').textContent = 'Checking…';
+  try {
+    const res = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payee: $('payee').value, amount: Number($('amount').value),
+        reason: $('reason').value, message: $('message').value }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+    current = data; showVerdict();
+  } catch (err) { $('form-error').textContent = err.message; }
+  finally { $('check-btn').disabled = false; $('check-btn').textContent = 'Check this payment'; }
+});
+
+/* Animate the gauge needle from the left edge to the score */
+function sweep(score) {
+  const g = $('needle'), to = -90 + score * 1.8;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return g.setAttribute('transform', `rotate(${to} 100 100)`);
+  const t0 = performance.now();
+  (function f(t) {
+    const p = Math.min(1, (t - t0) / 1300), e = 1 - Math.pow(1 - p, 3);
+    g.setAttribute('transform', `rotate(${-90 + (to + 90) * e} 100 100)`);
+    if (p < 1) requestAnimationFrame(f);
+  })(t0);
+}
+
+function showVerdict() {
+  const v = current;
+  document.body.className = 'v-' + v.verdict;
+  $('s1').hidden = true; $('s2').hidden = false;
+  $('vt').textContent = { SAFE: 'Looks lower risk', RISKY: 'Be careful', SCAM: 'This may be a scam' }[v.verdict];
+  $('vs').textContent = v.score; $('va').textContent = v.advice;
+  const ul = $('vr'); ul.replaceChildren();
+  v.reasons.forEach((r) => { const li = document.createElement('li'); li.textContent = r; ul.appendChild(li); });
+
+  ['warn', 'pay', 'scam-actions', 'success'].forEach((id) => { $(id).hidden = true; });
+  $('risky-confirm').checked = false; $('pay-error').textContent = ''; $('paypal-buttons').replaceChildren();
+  $('step3').textContent = v.verdict === 'SCAM' ? 'Protect' : 'Pay';
+  setStep(3);
+
+  if (v.verdict === 'SCAM') { setupFamilyAlert(); $('scam-actions').hidden = false; }
+  else { $('warn').hidden = v.verdict !== 'RISKY'; $('pay').hidden = false; renderPayPal(); }
+  window.scrollTo(0, 0);
+  setTimeout(() => sweep(v.score), 150);
+}
+
+/* ---------- SCAM: alert family (share sheet, else sms, plus email link) ---------- */
+function setupFamilyAlert() {
+  const text = `Possible scam alert: someone asked me to pay $${Number($('amount').value).toFixed(2)} to "${$('payee').value}". ` +
+    `ScamShield (an AI assistant) thinks it may be a scam. I am not sending money. Please call me.`;
+  $('family-btn').onclick = async () => {
+    if (navigator.share) { try { await navigator.share({ text }); return; } catch (_) { /* cancelled */ } }
+    location.href = 'sms:?&body=' + encodeURIComponent(text);
+  };
+  $('family-email').href = 'mailto:?subject=' + encodeURIComponent('Possible scam alert') + '&body=' + encodeURIComponent(text);
+}
+
+/* ---------- SAFE / RISKY: PayPal Sandbox buttons ---------- */
+function loadSDK() {
+  if (sdkPromise) return sdkPromise;
+  sdkPromise = fetch('/api/config').then((r) => r.json()).then((cfg) => {
+    if (!cfg.clientId) throw new Error(cfg.error || 'PayPal is not configured.');
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://www.paypal.com/sdk/js?currency=USD&client-id=' + encodeURIComponent(cfg.clientId);
+      s.onload = resolve; s.onerror = () => reject(new Error('Could not load PayPal.'));
+      document.head.appendChild(s);
+    });
+  }).catch((e) => { sdkPromise = null; throw e; });
+  return sdkPromise;
+}
+
+async function renderPayPal() {
+  try {
+    await loadSDK();
+    const verdictId = current.verdictId;
+    paypal.Buttons({
+      onClick: (data, actions) => { // RISKY: block until the box is ticked
+        if (current.verdict === 'RISKY' && !$('risky-confirm').checked) {
+          $('pay-error').textContent = 'Please tick the box above first.'; return actions.reject();
+        }
+        $('pay-error').textContent = ''; return actions.resolve();
+      },
+      createOrder: async () => {
+        const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ verdictId, confirmed: $('risky-confirm').checked }) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        return data.id;
+      },
+      onApprove: async (data) => {
+        const res = await fetch(`/api/orders/${encodeURIComponent(data.orderID)}/capture`, { method: 'POST' });
+        const out = await res.json();
+        if (!res.ok) throw new Error(out.error);
+        $('pay').hidden = true; $('warn').hidden = true;
+        $('order-id').textContent = out.id || data.orderID; $('success').hidden = false;
+      },
+      onError: (err) => { $('pay-error').textContent = (err && err.message) || 'The payment did not go through.'; },
+    }).render('#paypal-buttons');
+  } catch (err) { $('pay-error').textContent = err.message; }
+}
+
+$('again-btn').addEventListener('click', () => {
+  document.body.className = ''; $('s2').hidden = true; $('s1').hidden = false;
+  $('form').reset(); $('needle').setAttribute('transform', 'rotate(-90 100 100)');
+  current = null; setStep(1); window.scrollTo(0, 0);
+});
+</script>
+</body>
+</html>
